@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { DatabaseHealthCheck } from '../components/DatabaseHealthCheck';
 
 export function AdminLogin() {
   const { signIn } = useAuth();
@@ -9,6 +10,7 @@ export function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dbHealthy, setDbHealthy] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,10 +18,33 @@ export function AdminLogin() {
     setLoading(true);
 
     try {
-      await signIn(email, password, 'admin');
+      console.log('Admin login attempt for:', email);
+      
+      // Add timeout to prevent hanging
+      const loginPromise = signIn(email, password, 'admin');
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Login timeout - please try again')), 15000)
+      );
+
+      await Promise.race([loginPromise, timeoutPromise]);
+      
+      console.log('Admin login successful, redirecting...');
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      console.error('Admin login error:', err);
+      let errorMessage = 'Failed to sign in';
+      
+      if (err.message === 'Login timeout - please try again') {
+        errorMessage = 'Login is taking too long. Please check your connection and try again.';
+      } else if (err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password';
+      } else if (err.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and confirm your account';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -54,8 +79,10 @@ export function AdminLogin() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <DatabaseHealthCheck onHealthChange={setDbHealthy} />
+            
             {error && (
-              <div className="bg-red-900/50 border border-red-700 text-green-400 px-4 py-3 rounded-lg">
+              <div className="bg-red-900/50 border border-red-700 text-red-400 px-4 py-3 rounded-lg">
                 {error}
               </div>
             )}
@@ -92,10 +119,10 @@ export function AdminLogin() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !dbHealthy}
               className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition transform active:scale-95"
             >
-              {loading ? 'Signing in...' : 'Sign In to Admin'}
+              {loading ? 'Signing in...' : !dbHealthy ? 'Database Unavailable' : 'Sign In to Admin'}
             </button>
           </form>
 
