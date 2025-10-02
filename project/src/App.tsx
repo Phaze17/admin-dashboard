@@ -20,7 +20,7 @@ export default function App() {
             path="/admin/dashboard" 
             element={
               <ProtectedRoute 
-                requiredRoles={['admin']} 
+                requiredRoles={['admin', 'operator']} 
                 redirectTo="/admin/login"
               >
                 <AdminDashboard />

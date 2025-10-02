@@ -16,6 +16,14 @@ export function ProtectedRoute({
   const { user, supabaseUser, loading } = useAuth();
   const location = useLocation();
 
+  console.log('ProtectedRoute check:', {
+    user,
+    supabaseUser: !!supabaseUser,
+    loading,
+    requiredRoles,
+    currentPath: location.pathname
+  });
+
   // Show loading spinner while checking authentication
   if (loading) {
     return (
@@ -40,6 +48,12 @@ export function ProtectedRoute({
 
   // Check role requirements
   if (requiredRoles.length > 0 && user && !requiredRoles.includes(user.role)) {
+    console.log('Role check failed:', {
+      userRole: user.role,
+      requiredRoles,
+      hasUser: !!user
+    });
+    
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -48,6 +62,9 @@ export function ProtectedRoute({
           <p className="text-gray-400 mb-4">
             You don't have permission to access this page.
           </p>
+          <div className="text-sm text-gray-500 mb-4">
+            Your role: {user.role} | Required: {requiredRoles.join(', ')}
+          </div>
           <button
             onClick={() => window.history.back()}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"

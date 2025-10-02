@@ -6,12 +6,19 @@ export function MarketingDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  console.log('MarketingDashboard rendering with user:', user);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
 
-  if (!user) return null;
+  if (!user) {
+    console.log('No user, returning null');
+    return null;
+  }
+
+  console.log('Rendering marketing dashboard for user:', user.email);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

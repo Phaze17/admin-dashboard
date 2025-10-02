@@ -1,14 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export function AdminDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [updating, setUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState('');
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const fixUserRole = async () => {
+    if (!user) return;
+    
+    setUpdating(true);
+    setUpdateMessage('');
+    
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ role: 'admin' })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      setUpdateMessage('✅ Role updated to admin! Please refresh the page.');
+    } catch (error: any) {
+      setUpdateMessage('❌ Failed to update role: ' + error.message);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   if (!user) return null;
@@ -44,6 +69,31 @@ export function AdminDashboard() {
       </header>
 
       <main className="p-6">
+        {/* Role Fix Section - Show only if user is operator */}
+        {user.role === 'operator' && (
+          <div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">⚠️</div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-yellow-400 mb-2">Role Configuration Issue</h3>
+                <p className="text-yellow-200 mb-3">
+                  Your account has "operator" role but you need "admin" role for full access.
+                </p>
+                <button
+                  onClick={fixUserRole}
+                  disabled={updating}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white rounded-lg transition"
+                >
+                  {updating ? 'Updating...' : 'Fix My Role to Admin'}
+                </button>
+                {updateMessage && (
+                  <div className="mt-2 text-sm">{updateMessage}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 shadow-xl">
             <div className="text-4xl mb-2">👥</div>
